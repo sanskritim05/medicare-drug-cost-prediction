@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 02 · Silver
 # MAGIC Rename to snake_case, cast numbers, standardize text, drop invalid rows and exact duplicates.

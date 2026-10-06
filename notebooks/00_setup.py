@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 00 · Setup
 # MAGIC Creates the schema and a Unity Catalog volume to hold the raw CSV files.
@@ -42,3 +46,7 @@ for year, url in DOWNLOAD_URLS.items():
 # COMMAND ----------
 
 display(dbutils.fs.ls(RAW_DIR))
+
+# COMMAND ----------
+
+print(open("/Volumes/workspace/partd/raw/partd_prescriber_drug_2023.csv").readline())

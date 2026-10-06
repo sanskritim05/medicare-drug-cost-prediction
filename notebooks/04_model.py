@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 04 · Model
 # MAGIC Using `FEATURE_YEAR` features, predict whether a prescriber is in the top 10% of brand-name

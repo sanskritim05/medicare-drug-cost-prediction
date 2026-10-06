@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 01 · Bronze
 # MAGIC Load each year's raw CSV into its own Delta table with every column kept as a string.

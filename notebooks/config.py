@@ -23,7 +23,7 @@ SCHEMA = "partd"
 VOLUME = "raw"
 
 # Features come from FEATURE_YEAR; the label comes from FEATURE_YEAR + 1.
-FEATURE_YEAR = 2022
+FEATURE_YEAR = 2023
 LABEL_YEAR = FEATURE_YEAR + 1
 YEARS = [FEATURE_YEAR, LABEL_YEAR]
 

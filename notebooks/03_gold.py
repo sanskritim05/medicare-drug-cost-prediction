@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 03 · Gold
 # MAGIC One row per prescriber per year: total cost, cost per claim, brand-name share of claims
@@ -8,6 +12,13 @@
 # COMMAND ----------
 
 # MAGIC %run ./config
+
+# COMMAND ----------
+
+import src.features as f
+print(f.__file__)
+print("has vaccine rule:", hasattr(f, "VACCINE_PATTERN"))
+
 
 # COMMAND ----------
 
