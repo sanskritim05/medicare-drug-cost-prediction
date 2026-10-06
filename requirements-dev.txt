@@ -1,0 +1,4 @@
+# Local development and CI. Databricks already ships pyspark and mlflow.
+pyspark==4.0.*
+pytest>=8
+numpy  # needed by pyspark.ml

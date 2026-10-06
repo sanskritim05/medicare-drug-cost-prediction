@@ -1,0 +1,10 @@
+[project]
+name = "partd-prescriber-pipeline"
+version = "0.1.0"
+description = "PySpark medallion pipeline and model on CMS Medicare Part D prescriber data"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+# Put the repo root on sys.path so tests can `import src.cleaning`.
+pythonpath = ["."]
+testpaths = ["tests"]
