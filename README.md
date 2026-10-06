@@ -92,18 +92,34 @@ duplicating or touching other years.
 
 ## Results
 
-> Fill these in after running `notebooks/04_model.py`. The numbers come from the MLflow runs.
+States: CT, RI, DE · Features: 2023 · Label: 2024 · Train: 18,742 prescribers · Test: 4,712 prescribers ·
+Positive rate: 9.7%. Precision at top 10% is measured on the 472 highest-scored test prescribers.
 
-States: CT, RI, DE · Features: 2023 · Label: 2024 · Test prescribers: _TBD_ · Positive rate: _TBD_
+| Model | AUROC | Precision at top 10% | Correct out of 472 |
+|---|---|---|---|
+| Baseline (prior-year brand cost) | 0.977 | 0.809 | 382 |
+| Logistic regression | 0.974 | 0.778 | 367 |
+| Gradient-boosted trees | 0.978 | 0.818 | 386 |
 
-| Model | AUROC | Precision at top 10% |
-|---|---|---|
-| Baseline (prior-year brand cost) | _TBD_ | _TBD_ |
-| Logistic regression | _TBD_ | _TBD_ |
-| Gradient-boosted trees | _TBD_ | _TBD_ |
+The three MLflow runs, compared in the Databricks experiment UI:
 
-Brand-name spending is very persistent from one year to the next, so expect the baseline to be strong. The question
-is how much the models add on top of it.
+<p>
+  <img src="docs/mlflow_auroc.png" alt="AUROC by model: baseline 0.98, logistic regression 0.97, gradient-boosted trees 0.98" width="49%">
+  <img src="docs/mlflow_precision_at_top_10pct.png" alt="Precision at top 10% by model: baseline 0.81, logistic regression 0.78, gradient-boosted trees 0.82" width="49%">
+</p>
+
+**The baseline is nearly unbeatable.** Ranking prescribers by last year's brand cost already finds 382 of
+the 472 who end up in next year's top 10%. Gradient-boosted trees find 4 more, a gain of under one
+percentage point. With 472 prescribers in the top slice, the standard error on precision is about
+1.8 points, so that gain is within noise. Logistic regression does slightly worse than the baseline.
+Brand-name spending is extremely persistent: prescribers of expensive specialty drugs keep prescribing them.
+
+AUROC is high for every model because most prescribers have little brand spending and are easy to rank
+low. Precision at the top 10% is the more informative metric here.
+
+**Takeaway:** without the baseline, 0.978 AUROC looks like a strong model. With it, you can see that the ML
+adds almost nothing over a one-line rule. A more useful next model would predict which prescribers
+*newly enter* the top 10%, which the baseline cannot do by construction.
 
 ## Limitations
 
