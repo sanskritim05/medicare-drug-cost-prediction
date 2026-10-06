@@ -1,6 +1,11 @@
 import pytest
 
-from src.features import add_is_generic, add_next_year_label, build_prescriber_features
+from src.features import (
+    add_is_generic,
+    add_is_vaccine,
+    add_next_year_label,
+    build_prescriber_features,
+)
 
 SILVER_COLUMNS = [
     "npi", "year", "specialty", "state", "brand_name", "generic_name",
@@ -26,6 +31,53 @@ def test_add_is_generic(silver):
     assert flags[("A", "LIPITOR")] is False
     assert flags[("A", "ATORVASTATIN CALCIUM")] is True
     assert flags[("B", "ELIQUIS")] is False
+
+
+# Generic names as they appear in the 2023 CMS file.
+VACCINE_GENERIC_NAMES = [
+    "RSV VACC, PREF A AND PREF B/PF",
+    "DIPH,PERTUSS(ACELL),TET VAC/PF",
+    "RSVPREF3 ANTIGEN/AS01E/PF",
+    "HEPATITIS B VIRUS VACCINE/PF",
+    "MENING VAC A,C,Y,W135,C-TET/PF",
+    "VARICELLA-ZOSTER GE/AS01B/PF",
+    "TETANUS, DIPHTHERIA TOX,ADULT",
+    "TETANUS-DIPHTHERIA TOXOIDS/PF",
+    "MEASLES,MUMPS,RUBELLA VACC/PF",
+]
+# Non-vaccines, including look-alikes that contain "VAC" or "TOX" inside a word.
+NON_VACCINE_GENERIC_NAMES = [
+    "ATORVASTATIN CALCIUM",
+    "SEMAGLUTIDE",
+    "INSULIN GLARGINE,HUM.REC.ANLOG",
+    "ONABOTULINUMTOXINA",
+    "AVACOPAN",
+    "VALACYCLOVIR HCL",
+]
+
+
+def test_add_is_vaccine(spark):
+    names = VACCINE_GENERIC_NAMES + NON_VACCINE_GENERIC_NAMES
+    df = spark.createDataFrame([(n,) for n in names], ["generic_name"])
+    flags = {r["generic_name"]: r["is_vaccine"] for r in add_is_vaccine(df).collect()}
+
+    assert [n for n in VACCINE_GENERIC_NAMES if not flags[n]] == []
+    assert [n for n in NON_VACCINE_GENERIC_NAMES if flags[n]] == []
+
+
+def test_vaccines_count_in_totals_but_not_brand(spark):
+    rows = [
+        ("V", 2023, "Internal Medicine", "CT", "SHINGRIX", "VARICELLA-ZOSTER GE/AS01B/PF", 100, 20000.0),
+        ("V", 2023, "Internal Medicine", "CT", "ELIQUIS", "APIXABAN", 10, 5000.0),
+        ("V", 2023, "Internal Medicine", "CT", "LISINOPRIL", "LISINOPRIL", 10, 100.0),
+    ]
+    v = build_prescriber_features(spark.createDataFrame(rows, SILVER_COLUMNS)).first()
+
+    assert v["total_claims"] == 120
+    assert v["total_cost"] == 25100.0
+    assert v["brand_claims"] == 10  # Eliquis only
+    assert v["brand_cost"] == 5000.0
+    assert v["brand_claim_share"] == pytest.approx(10 / 120)
 
 
 def test_build_prescriber_features_one_row_per_prescriber(silver):

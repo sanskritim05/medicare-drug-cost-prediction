@@ -57,6 +57,16 @@ You can query the table to see quality over time.
 **Generic vs brand rule:** a drug row is generic when `brand_name == generic_name`. Silver upper-cases
 names and collapses whitespace first, so "Atorvastatin Calcium" and "ATORVASTATIN  CALCIUM" match.
 
+**Vaccines are excluded from brand totals.** Vaccines have no generic version, so the rule above always
+counts them as brand. While checking the top of the gold table, I found that two of the three biggest
+"brand" spenders were mostly vaccines (Arexvy, Shingrix, Abrysvo) at about $250 a claim. These look like
+pharmacy standing-order prescribers, where one physician's NPI covers every shot given at a pharmacy chain.
+In 2023 (CT, RI, DE), vaccines were only 1.6% of brand cost and appeared for 573 of 23,454 prescribers.
+But a single NPI held about 40% of all vaccine spending.
+A vaccine is never a generic-substitution opportunity, so gold flags vaccines by generic name
+(`VACCINE_PATTERN` in `src/features.py`) and leaves them out of `brand_claims` and `brand_cost`.
+They still count toward `total_claims` and `total_cost`.
+
 **Rerunnable writes:** silver and gold are single tables with a `year` column. Each year is written with
 Delta `replaceWhere = "year = N"`, so rerunning one year replaces that year's rows without
 duplicating or touching other years.
@@ -65,8 +75,8 @@ duplicating or touching other years.
 
 - **Features (year N):** log of total claims, total cost, cost per claim, brand claims, brand cost and distinct
   drugs; brand claim share; brand cost share; one-hot specialty.
-- **Label (year N+1):** 1 if the prescriber's brand cost is above the 90th percentile among year N+1
-  prescribers. Prescribers who do not appear in year N+1 get 0.
+- **Label (year N+1):** 1 if the prescriber's brand cost (excluding vaccines) is above the 90th
+  percentile among year N+1 prescribers. Prescribers who do not appear in year N+1 get 0.
 - **Split:** 80/20 by a hash of the NPI. It is deterministic, so the split stays the same when Spark recomputes the
   DataFrame. That matters because serverless compute does not allow `.cache()`.
 - **Models:**
@@ -84,7 +94,7 @@ duplicating or touching other years.
 
 > Fill these in after running `notebooks/04_model.py`. The numbers come from the MLflow runs.
 
-States: CT, RI, DE · Features: 2022 · Label: 2023 · Test prescribers: _TBD_ · Positive rate: _TBD_
+States: CT, RI, DE · Features: 2023 · Label: 2024 · Test prescribers: _TBD_ · Positive rate: _TBD_
 
 | Model | AUROC | Precision at top 10% |
 |---|---|---|
@@ -101,12 +111,18 @@ is how much the models add on top of it.
   `notebooks/config.py` (CT, RI, DE by default). The top-10% cutoff is computed within those states,
   not nationally. A prescriber who moves to another state looks like they dropped out (label 0).
   Set `STATES = None` to process the whole country on larger compute.
-- **One pair of years, no out-of-time test.** Train and test both come from the same 2022→2023 pair.
-  A stronger check would train on 2021→2022 and test on 2022→2023.
+- **One pair of years, no out-of-time test.** Train and test both come from the same 2023→2024 pair.
+  A stronger check would train on 2022→2023 and test on 2023→2024.
 - **CMS suppression.** CMS omits prescriber × drug rows with fewer than 11 claims, so small prescribers'
   totals are understated and some prescribers are missing entirely.
 - **Brand/generic rule is a heuristic.** `brand_name == generic_name` misclassifies some branded
   generics and biosimilars.
+- **Vaccine flag is a name pattern.** Everything it flags in the 2023 CT/RI/DE data is a vaccine, but a
+  vaccine whose generic name lacks "VACCINE", "VAC", "TOXOID", "ANTIGEN" or "AS01" would be missed and
+  still count as brand.
+- **Vaccine policy shifts add label noise.** RSV vaccines launched in 2023 and their recommendations
+  narrowed for 2024, so vaccine-heavy prescribers' profiles changed for policy reasons. Excluding
+  vaccines from brand cost limits this but does not remove it from total cost.
 - **Gross cost.** `Tot_Drug_Cst` is cost before manufacturer rebates, so it overstates what Medicare
   really pays for many brand drugs.
 - **Specialty** is the CMS-derived prescriber type, not verified credentials.
@@ -120,7 +136,7 @@ is how much the models add on top of it.
 
 1. **Add the repo.** In Databricks, go to *Workspace → Create → Git folder* and paste this repo's URL.
 2. **Set up storage.** Open `notebooks/00_setup` and run it. It creates schema `workspace.partd` and volume `raw`.
-3. **Get the data.** Download the CSV for 2022 and 2023 from data.cms.gov. Upload each to the
+3. **Get the data.** Download the CSV for 2023 and 2024 from data.cms.gov. Upload each to the
    `raw` volume as `partd_prescriber_drug_<year>.csv`, or paste the download links into the last cell of
    `00_setup`.
 4. **Run the pipeline.** Run `01_bronze`, then `02_silver`, `03_gold` and `04_model`, in order.
